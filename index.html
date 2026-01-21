@@ -93,7 +93,7 @@ h2 {
   background: #fafafa;
 }
 
-.notice[contenteditable="true"]:focus {
+.notice[contenteditable]:focus {
   outline: 2px dashed #666;
 }
 
@@ -118,7 +118,6 @@ h2 {
   .notice {
     border: 1px solid black;
     background: white;
-    color: black;
   }
 
   input {
@@ -155,8 +154,14 @@ h2 {
 <div class="page">
 
 <div class="controls">
-  Kandidaten (für andere Wahlzettel):
-  <input type="number" min="1" value="5" onchange="setGlobalCount(this.value)">
+  Erststimmen-Kandidaten:
+  <input type="number" min="1" value="5" onchange="erstCount=this.value; drawBundestag()">
+  &nbsp;
+  Zweitstimmen-Parteien:
+  <input type="number" min="1" value="5" onchange="zweitCount=this.value; drawBundestag()">
+  <br><br>
+  Kandidaten (andere Wahlzettel):
+  <input type="number" min="1" value="5" onchange="otherCount=this.value; drawCross(); drawNumber()">
   &nbsp;
   <button onclick="window.print()">🖨️ Drucken</button>
 </div>
@@ -165,17 +170,9 @@ h2 {
 <div id="bundestag">
   <h2>Stimmzettel zur Bundestagswahl</h2>
 
-  <div class="controls">
-    Erststimmen-Kandidaten:
-    <input type="number" min="1" value="10" onchange="drawBundestag()">
-    &nbsp;
-    Zweitstimmen-Parteien:
-    <input type="number" min="1" value="9" onchange="drawBundestag()">
-  </div>
-
   <div class="notice" contenteditable="true">
-    Sie haben eine Erststimme und eine Zweitstimme.
-    <br>In jeder Spalte dürfen Sie jeweils nur ein Kreuz setzen.
+    Sie haben eine Erststimme und eine Zweitstimme.<br>
+    In jeder Spalte darf nur ein Kreuz gesetzt werden.
   </div>
 
   <div class="ballot-grid">
@@ -200,6 +197,7 @@ h2 {
   </p>
 
   <div class="notice" id="crossNotice" contenteditable="true"></div>
+
   <div class="vote-box" id="crossBox"></div>
 </div>
 
@@ -221,7 +219,9 @@ h2 {
 </div>
 
 <script>
-let globalCount = 5;
+let erstCount = 5;
+let zweitCount = 5;
+let otherCount = 5;
 
 function switchBallot(id) {
   ["bundestag","cross","number"].forEach(x =>
@@ -230,16 +230,7 @@ function switchBallot(id) {
   document.getElementById(id).classList.remove("hidden");
 }
 
-function setGlobalCount(v) {
-  globalCount = v;
-  drawCross();
-  drawNumber();
-}
-
 function drawBundestag() {
-  const erstCount = document.querySelectorAll('#bundestag input[type=number]')[0].value;
-  const zweitCount = document.querySelectorAll('#bundestag input[type=number]')[1].value;
-
   drawSingle("erst", erstCount, "Kandidat", "Partei");
   drawSingle("zweit", zweitCount, "Partei", "Kurzname");
 }
@@ -266,7 +257,7 @@ function drawSingle(target, count, p1, p2) {
 function drawCross() {
   const box = document.getElementById("crossBox");
   box.innerHTML = "";
-  for (let i = 1; i <= globalCount; i++) {
+  for (let i = 1; i <= otherCount; i++) {
     const row = document.createElement("div");
     row.className = "vote-row";
 
@@ -281,4 +272,53 @@ function drawCross() {
     });
 
     row.appendChild(cross);
-    row.appendChild(textInput(`K
+    row.appendChild(textInput(`Kandidat ${i}`));
+    row.appendChild(document.createElement("div"));
+    box.appendChild(row);
+  }
+}
+
+function updateCrossNotice() {
+  const limit = document.getElementById("crossLimit").value;
+  document.getElementById("crossNotice").innerHTML =
+    `Sie haben ${limit} Stimme${limit > 1 ? "n" : ""}.<br>
+     Setzen Sie höchstens ${limit} Kreuz${limit > 1 ? "e" : ""}.`;
+}
+
+function drawNumber() {
+  const box = document.getElementById("numberBox");
+  box.innerHTML = "";
+  for (let i = 1; i <= otherCount; i++) {
+    const row = document.createElement("div");
+    row.className = "vote-row";
+    row.innerHTML = `
+      <div></div>
+      <input type="text" placeholder="Kandidat ${i}">
+      <input type="number" min="0" placeholder="Stimmen">
+    `;
+    box.appendChild(row);
+  }
+}
+
+function createCross(handler) {
+  const c = document.createElement("div");
+  c.className = "cross";
+  c.onclick = handler;
+  return c;
+}
+
+function textInput(ph) {
+  const i = document.createElement("input");
+  i.type = "text";
+  i.placeholder = ph;
+  return i;
+}
+
+drawBundestag();
+drawCross();
+drawNumber();
+updateCrossNotice();
+</script>
+
+</body>
+</html>
